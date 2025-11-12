@@ -1,0 +1,25 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() { return request.auth != null; }
+    function role() { return request.auth.token.role; }
+    function isStaff() { return role() == "ADMIN" || role() == "MECHANIC"; }
+    function customerId() { return request.auth.token.customerId; }
+
+    match /workOrders/{woId}/media/{file} {
+      allow read: if isStaff()
+        || (isSignedIn() &&
+            get(/databases/(default)/documents/vehicles/
+              $(get(/databases/(default)/documents/workOrders/$(woId)).data.vehicleId)).data.customerId == customerId());
+      allow write: if isStaff();
+    }
+
+    match /invoices/{woId}/{file} {
+      allow read: if isStaff()
+        || (isSignedIn() &&
+            get(/databases/(default)/documents/vehicles/
+              $(get(/databases/(default)/documents/workOrders/$(woId)).data.vehicleId)).data.customerId == customerId());
+      allow write: if isStaff();
+    }
+  }
+}

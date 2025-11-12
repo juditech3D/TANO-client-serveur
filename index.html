@@ -115,6 +115,9 @@
         }
     </style>
 </head>
+<script type="module" src="public/js/firebase-config.js"></script>
+<script type="module" src="public/js/auth.js"></script>
+
 <body>
     <div id="app">Caricamento...</div>
 
@@ -901,5 +904,86 @@
             });
         }
     </script>
+
+<!-- Firebase anonymous auth + Firestore sync (injected) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+  import { getStorage } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAgY9J6un3pftW1t4H4tD_gliY_00Man0A",
+    authDomain: "tano-garage.firebaseapp.com",
+    projectId: "tano-garage",
+    storageBucket: "tano-garage.firebasestorage.app",
+    appId: "1:374916118237:web:f52da64bcb9234baa28d34"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+  const sto  = getStorage(app);
+  window.firebaseAuth = auth;
+  window.firebaseDB   = db;
+  window.firebaseSto  = sto;
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      signInAnonymously(auth).catch((e) => console.error("Anon auth error:", e));
+    } else {
+      window.firebaseUser = user;
+      console.log("✅ Firebase anonyme:", user.uid);
+    }
+  });
+
+  const FIREBASE_SYNC = true;
+
+  function getVehiclesRef() {
+    if (!window.vehicles) window.vehicles = {};
+    return window.vehicles;
+  }
+  function setVehicles(obj) { window.vehicles = obj || {}; }
+
+  window.loadData = async function loadData(){
+    try {
+      if (FIREBASE_SYNC && window.firebaseUser) {
+        const ref = doc(db, "users", window.firebaseUser.uid, "storage", "vehicles");
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          setVehicles(snap.data().vehicles || {});
+          console.log("⬇️ Vehicles from Firestore:", window.vehicles);
+          return;
+        }
+      }
+      const stored = localStorage.getItem('garage_vehicles');
+      setVehicles(stored ? JSON.parse(stored) : {});
+      console.log("⬇️ Vehicles from localStorage:", window.vehicles);
+    } catch (e) {
+      console.warn("loadData fallback localStorage:", e);
+      const stored = localStorage.getItem('garage_vehicles');
+      setVehicles(stored ? JSON.parse(stored) : {});
+    }
+  }
+
+  window.saveData = async function saveData(){
+    try {
+      localStorage.setItem('garage_vehicles', JSON.stringify(getVehiclesRef()));
+      if (FIREBASE_SYNC && window.firebaseUser) {
+        const ref = doc(db, "users", window.firebaseUser.uid, "storage", "vehicles");
+        await setDoc(ref, { vehicles: getVehiclesRef(), updatedAt: Date.now() }, { merge: true });
+        console.log("⬆️ Vehicles saved to Firestore");
+      }
+      if (typeof window.showNotification === "function") {
+        window.showNotification('✅ Dati salvati');
+      }
+    } catch (error) {
+      console.error('Erreur save:', error);
+      if (typeof window.showNotification === "function") {
+        window.showNotification('❌ Errore salvataggio', 'error');
+      }
+    }
+  }
+</script>
 </body>
 </html>
