@@ -149,17 +149,36 @@
         }
 
         function verifyClientCode(code) {
+            console.log('🔍 Vérification code:', code);
+            console.log('📦 Véhicules disponibles:', Object.keys(vehicles));
+            
             const parts = code.toUpperCase().split('-');
-            if (parts.length < 2) return null;
+            console.log('📝 Parts:', parts);
+            
+            if (parts.length < 2) {
+                console.log('❌ Pas assez de parties');
+                return null;
+            }
             
             const year = parts[parts.length - 1];
             const targa = parts.slice(0, -1).join('-');
+            
+            console.log('📅 Année:', year);
+            console.log('🚗 Targa extraite:', targa);
+            
             const currentYear = new Date().getFullYear().toString();
             const lastYear = (currentYear - 1).toString();
             
+            console.log('✅ Année actuelle:', currentYear);
+            console.log('✅ Année précédente:', lastYear);
+            console.log('🔎 Véhicule existe?', vehicles[targa] ? 'OUI' : 'NON');
+            
             if ((year === currentYear || year === lastYear) && vehicles[targa]) {
+                console.log('✅ CODE VALIDE!');
                 return targa;
             }
+            
+            console.log('❌ CODE INVALIDE');
             return null;
         }
 
@@ -478,6 +497,10 @@
 
         function render() {
             const app = document.getElementById('app');
+            
+            // Nettoyer les modals existants
+            const existingModals = document.querySelectorAll('.modal');
+            existingModals.forEach(modal => modal.remove());
 
             if (showShareModal && shareModalTarga) {
                 const vehicle = vehicles[shareModalTarga];
