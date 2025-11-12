@@ -11,6 +11,7 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
         html, body {
@@ -72,40 +73,88 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+        .modal-content {
+            background: rgba(30,30,35,0.95);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        #qrcode {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            margin: 16px 0;
+        }
     </style>
 </head>
 <body>
     <div id="app">Caricamento...</div>
 
     <script>
-        // ========== CONFIGURATION ==========
-        const MECHANIC_PIN = "1234"; // Code PIN mécanicien (modifiable)
+        const MECHANIC_PIN = "1234";
         
-        // ========== VARIABLES GLOBALES ==========
         let vehicles = {};
         let currentVehicle = null;
         let showAddForm = false;
         let isMechanicMode = false;
         let isClientMode = false;
         let showLoginScreen = true;
+        let searchQuery = '';
+        let showShareModal = false;
+        let shareModalTarga = null;
 
-        // ========== GÉNÉRATION CODE CLIENT ==========
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
         function generateClientCode(targa) {
-            // Format: TARGA-ANNÉE
             const year = new Date().getFullYear();
             return `${targa}-${year}`;
         }
 
-        // ========== VÉRIFICATION CODE CLIENT ==========
         function verifyClientCode(code) {
             const parts = code.toUpperCase().split('-');
-            if (parts.length !== 2) return null;
+            if (parts.length < 2) return null;
             
-            const targa = parts[0];
-            const year = parts[1];
+            const year = parts[parts.length - 1];
+            const targa = parts.slice(0, -1).join('-');
             const currentYear = new Date().getFullYear().toString();
-            
-            // Accepter l'année actuelle et l'année précédente
             const lastYear = (currentYear - 1).toString();
             
             if ((year === currentYear || year === lastYear) && vehicles[targa]) {
@@ -114,7 +163,32 @@
             return null;
         }
 
-        // ========== CHARGER DONNÉES ==========
+        function getClientLink(targa) {
+            const code = vehicles[targa].clientCode || generateClientCode(targa);
+            const baseUrl = window.location.origin + window.location.pathname;
+            return `${baseUrl}?code=${encodeURIComponent(code)}`;
+        }
+
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            
+            if (code) {
+                const targa = verifyClientCode(code);
+                if (targa) {
+                    isClientMode = true;
+                    isMechanicMode = false;
+                    showLoginScreen = false;
+                    currentVehicle = targa;
+                    showNotification('✅ Accesso automatico effettuato');
+                    
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } else {
+                    showNotification('❌ Link non valido o scaduto', 'error');
+                }
+            }
+        }
+
         function loadData() {
             try {
                 const stored = localStorage.getItem('garage_vehicles');
@@ -127,63 +201,64 @@
             }
         }
 
-        // ========== SAUVEGARDER DONNÉES ==========
         function saveData() {
             try {
                 localStorage.setItem('garage_vehicles', JSON.stringify(vehicles));
+                showNotification('✅ Dati salvati');
             } catch (error) {
-                console.error('Erreur de sauvegarde:', error);
-                alert('Errore durante il salvataggio');
+                console.error('Erreur:', error);
+                showNotification('❌ Errore salvataggio', 'error');
             }
         }
 
-        // ========== AUTHENTIFICATION ==========
         function login() {
             const code = document.getElementById('loginCode').value.trim();
             
             if (!code) {
-                alert('Inserisci un codice');
+                showNotification('❌ Inserisci un codice', 'error');
                 return;
             }
 
-            // Vérifier si c'est le code mécanicien
             if (code === MECHANIC_PIN) {
                 isMechanicMode = true;
                 isClientMode = false;
                 showLoginScreen = false;
                 currentVehicle = null;
+                showNotification('✅ Accesso meccanico');
                 render();
                 return;
             }
 
-            // Vérifier si c'est un code client
             const targa = verifyClientCode(code);
             if (targa) {
                 isClientMode = true;
                 isMechanicMode = false;
                 showLoginScreen = false;
                 currentVehicle = targa;
+                showNotification('✅ Benvenuto');
                 render();
                 return;
             }
 
-            alert('Codice non valido');
+            showNotification('❌ Codice non valido', 'error');
         }
 
-        // ========== DÉCONNEXION ==========
         function logout() {
-            isMechanicMode = false;
-            isClientMode = false;
-            showLoginScreen = true;
-            currentVehicle = null;
-            showAddForm = false;
-            render();
+            if (confirm('Sei sicuro di voler uscire?')) {
+                isMechanicMode = false;
+                isClientMode = false;
+                showLoginScreen = true;
+                currentVehicle = null;
+                showAddForm = false;
+                searchQuery = '';
+                showNotification('👋 Disconnesso');
+                render();
+            }
         }
 
-        // ========== AJOUTER VÉHICULE ==========
         function addVehicle() {
             if (!isMechanicMode) {
-                alert('Accesso negato');
+                showNotification('❌ Accesso negato', 'error');
                 return;
             }
 
@@ -194,7 +269,12 @@
             const km = document.getElementById('newVehicleKm').value.trim();
 
             if (!targa) {
-                alert('Targa obbligatoria');
+                showNotification('❌ Targa obbligatoria', 'error');
+                return;
+            }
+
+            if (vehicles[targa]) {
+                showNotification('❌ Veicolo già esistente', 'error');
                 return;
             }
 
@@ -214,24 +294,23 @@
             render();
         }
 
-        // ========== AJOUTER INTERVENTION ==========
         function addIntervento() {
             if (!isMechanicMode) {
-                alert('Accesso negato');
+                showNotification('❌ Accesso negato', 'error');
                 return;
             }
 
             const data = document.getElementById('interventoData').value;
             const tipo = document.getElementById('interventoTipo').value;
-            const descrizione = document.getElementById('interventoDesc').value;
-            const ricambi = document.getElementById('interventoRicambi').value;
+            const descrizione = document.getElementById('interventoDesc').value.trim();
+            const ricambi = document.getElementById('interventoRicambi').value.trim();
             const costo = document.getElementById('interventoCosto').value;
             const km = document.getElementById('interventoKm').value;
-            const meccanico = document.getElementById('interventoMeccanico').value;
-            const note = document.getElementById('interventoNote').value;
+            const meccanico = document.getElementById('interventoMeccanico').value.trim();
+            const note = document.getElementById('interventoNote').value.trim();
 
             if (!tipo || !descrizione) {
-                alert('Tipo e descrizione obbligatori');
+                showNotification('❌ Tipo e descrizione obbligatori', 'error');
                 return;
             }
 
@@ -259,10 +338,9 @@
             render();
         }
 
-        // ========== SUPPRIMER INTERVENTION ==========
         function deleteIntervento(id) {
             if (!isMechanicMode) {
-                alert('Accesso negato');
+                showNotification('❌ Accesso negato', 'error');
                 return;
             }
 
@@ -275,10 +353,9 @@
             render();
         }
 
-        // ========== SUPPRIMER VÉHICULE ==========
         function deleteVehicle(targa) {
             if (!isMechanicMode) {
-                alert('Accesso negato');
+                showNotification('❌ Accesso negato', 'error');
                 return;
             }
 
@@ -289,41 +366,80 @@
             render();
         }
 
-        // ========== AFFICHER CODE CLIENT ==========
-        function showClientCode(targa) {
-            const vehicle = vehicles[targa];
-            const code = vehicle.clientCode || generateClientCode(targa);
+        function openShareModal(targa) {
+            showShareModal = true;
+            shareModalTarga = targa;
+            render();
             
-            // Mettre à jour le code si pas présent
-            if (!vehicle.clientCode) {
-                vehicle.clientCode = code;
-                saveData();
-            }
+            setTimeout(() => {
+                const link = getClientLink(targa);
+                const qrElement = document.getElementById('qrcode');
+                if (qrElement && typeof QRCode !== 'undefined') {
+                    qrElement.innerHTML = '';
+                    new QRCode(qrElement, {
+                        text: link,
+                        width: 200,
+                        height: 200
+                    });
+                }
+            }, 100);
+        }
 
-            const message = `
-CODICE CLIENTE
-━━━━━━━━━━━━━━━━
-Veicolo: ${targa}
-${vehicle.marca} ${vehicle.modello}
+        function closeShareModal() {
+            showShareModal = false;
+            shareModalTarga = null;
+            render();
+        }
 
-Codice: ${code}
-━━━━━━━━━━━━━━━━
-
-Comunica questo codice al cliente.
-Il cliente potrà vedere solo lo storico del suo veicolo.
-            `.trim();
-
-            alert(message);
-
-            // Copier dans le presse-papier
+        function copyLink(targa) {
+            const link = getClientLink(targa);
+            
             if (navigator.clipboard) {
-                navigator.clipboard.writeText(code).then(() => {
-                    console.log('Codice copiato');
+                navigator.clipboard.writeText(link).then(() => {
+                    showNotification('🔗 Link copiato negli appunti');
                 });
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = link;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showNotification('🔗 Link copiato');
             }
         }
 
-        // ========== EXPORT CSV ==========
+        function shareViaWhatsApp(targa) {
+            const vehicle = vehicles[targa];
+            const link = getClientLink(targa);
+            const message = `Ciao! Ecco il link per consultare lo storico del tuo veicolo ${targa} (${vehicle.marca} ${vehicle.modello}):\n\n${link}\n\nTano Evoluzione - Bosch Car Service`;
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        function shareViaEmail(targa) {
+            const vehicle = vehicles[targa];
+            const link = getClientLink(targa);
+            const subject = `Storico Veicolo ${targa}`;
+            const body = `Gentile Cliente,\n\nEcco il link per consultare lo storico completo del suo veicolo ${targa} (${vehicle.marca} ${vehicle.modello}):\n\n${link}\n\nPotrà visualizzare tutti gli interventi effettuati sul suo veicolo in qualsiasi momento.\n\nCordiali saluti,\nTano Evoluzione - Bosch Car Service`;
+            window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        }
+
+        function updateSearch(query) {
+            searchQuery = query.toLowerCase();
+            render();
+        }
+
+        function getFilteredVehicles() {
+            if (!searchQuery) return Object.values(vehicles);
+            
+            return Object.values(vehicles).filter(v => {
+                return v.targa.toLowerCase().includes(searchQuery) ||
+                       (v.marca && v.marca.toLowerCase().includes(searchQuery)) ||
+                       (v.modello && v.modello.toLowerCase().includes(searchQuery));
+            });
+        }
+
         function exportToExcel() {
             const vehicle = vehicles[currentVehicle];
             let csv = "Data;Tipo;Descrizione;Ricambi;Costo;Chilometraggio;Meccanico;Note\n";
@@ -341,18 +457,80 @@ Il cliente potrà vedere solo lo storico del suo veicolo.
 
             const element = document.createElement('a');
             element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
-            element.setAttribute('download', vehicle.targa + '.csv');
+            element.setAttribute('download', vehicle.targa + '_' + new Date().toISOString().split('T')[0] + '.csv');
             element.style.display = 'none';
             document.body.appendChild(element);
             element.click();
             document.body.removeChild(element);
+            
+            showNotification('📊 CSV esportato');
         }
 
-        // ========== RENDER ==========
+        function getVehicleStats(targa) {
+            const vehicle = vehicles[targa];
+            const interventi = vehicle.interventi || [];
+            
+            const totalCosto = interventi.reduce((sum, i) => sum + (parseFloat(i.costo) || 0), 0);
+            const ultimoIntervento = interventi[0]?.data || 'Mai';
+            
+            return { totalCosto, ultimoIntervento, count: interventi.length };
+        }
+
         function render() {
             const app = document.getElementById('app');
 
-            // ÉCRAN DE CONNEXION
+            if (showShareModal && shareModalTarga) {
+                const vehicle = vehicles[shareModalTarga];
+                const code = vehicle.clientCode || generateClientCode(shareModalTarga);
+                const link = getClientLink(shareModalTarga);
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold text-white">🔗 Condividi Accesso Cliente</h2>
+                            <button onclick="closeShareModal()" class="text-white hover:text-red-400 text-2xl">&times;</button>
+                        </div>
+                        
+                        <div class="text-center mb-4">
+                            <p class="text-gray-300 mb-2">Veicolo: <strong class="text-white">${shareModalTarga}</strong></p>
+                            <p class="text-gray-400 text-sm">${vehicle.marca} ${vehicle.modello}</p>
+                        </div>
+
+                        <div id="qrcode"></div>
+
+                        <div class="bg-gray-800 p-3 rounded mb-4">
+                            <p class="text-xs text-gray-400 mb-1">Link diretto:</p>
+                            <p class="text-sm text-blue-400 break-all">${link}</p>
+                        </div>
+
+                        <div class="bg-gray-800 p-3 rounded mb-4">
+                            <p class="text-xs text-gray-400 mb-1">Codice manuale:</p>
+                            <p class="text-lg text-white font-bold text-center">${code}</p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <button onclick="copyLink('${shareModalTarga}')" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">
+                                📋 Copia Link
+                            </button>
+                            <button onclick="shareViaWhatsApp('${shareModalTarga}')" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700">
+                                📱 Invia via WhatsApp
+                            </button>
+                            <button onclick="shareViaEmail('${shareModalTarga}')" class="w-full bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700">
+                                📧 Invia via Email
+                            </button>
+                        </div>
+
+                        <p class="text-xs text-gray-500 text-center mt-4">
+                            Il cliente potrà vedere solo lo storico di questo veicolo
+                        </p>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                return;
+            }
+
             if (showLoginScreen) {
                 app.innerHTML = `
                     <div class="min-h-screen flex items-center justify-center p-4">
@@ -363,13 +541,14 @@ Il cliente potrà vedere solo lo storico del suo veicolo.
                             
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-semibold mb-2">Inserisci il codice:</label>
+                                    <label class="block text-sm font-semibold mb-2" style="color:#e5e7eb !important">Inserisci il codice:</label>
                                     <input 
                                         type="text" 
                                         id="loginCode" 
                                         placeholder="Codice Meccanico o Cliente"
                                         class="w-full px-4 py-3 border-2 rounded-lg text-center text-xl font-bold uppercase"
                                         onkeypress="if(event.key==='Enter') login()"
+                                        autofocus
                                     >
                                 </div>
                                 
@@ -380,7 +559,7 @@ Il cliente potrà vedere solo lo storico del suo veicolo.
                                 <div class="mt-6 pt-6 border-t border-gray-700">
                                     <p class="text-xs text-gray-500 text-center">
                                         🔧 <strong>Meccanico:</strong> Usa il PIN<br>
-                                        👤 <strong>Cliente:</strong> Usa il codice ricevuto
+                                        👤 <strong>Cliente:</strong> Usa il codice ricevuto o clicca sul link
                                     </p>
                                 </div>
                             </div>
@@ -390,9 +569,8 @@ Il cliente potrà vedere solo lo storico del suo veicolo.
                 return;
             }
 
-            // MODE MÉCANICIEN - Liste véhicules
             if (!currentVehicle && isMechanicMode) {
-                const vehiclesList = Object.values(vehicles);
+                const vehiclesList = getFilteredVehicles();
                 
                 app.innerHTML = `
                     <div class="min-h-screen">
@@ -430,33 +608,50 @@ Il cliente potrà vedere solo lo storico del suo veicolo.
                                 </div>
                             </div>
 
+                            ${Object.keys(vehicles).length > 3 ? `
+                                <div class="mb-4">
+                                    <input 
+                                        type="text" 
+                                        placeholder="🔍 Cerca veicolo..." 
+                                        class="w-full px-4 py-3 border-2 rounded-lg"
+                                        oninput="updateSearch(this.value)"
+                                        value="${searchQuery}"
+                                    >
+                                </div>
+                            ` : ''}
+
                             <h2 class="text-xl font-bold mb-3 text-white">🚗 Veicoli (${vehiclesList.length})</h2>
                             
                             ${vehiclesList.length === 0 ? `
                                 <div class="bg-white rounded-lg shadow p-8 text-center text-gray-400">
-                                    <p>Nessun veicolo registrato</p>
+                                    <p>${searchQuery ? 'Nessun veicolo trovato' : 'Nessun veicolo registrato'}</p>
                                 </div>
                             ` : `
                                 <div class="space-y-3">
-                                    ${vehiclesList.map(v => `
+                                    ${vehiclesList.map(v => {
+                                        const stats = getVehicleStats(v.targa);
+                                        return `
                                         <div class="bg-white rounded-lg shadow p-4">
                                             <div class="flex justify-between items-center">
                                                 <div class="flex-1 cursor-pointer" onclick="currentVehicle='${v.targa}'; render();">
                                                     <span class="text-xl font-bold">${v.targa}</span>
-                                                    <p class="text-gray-400">${v.marca} ${v.modello} ${v.anno ? `(${v.anno})` : ''}</p>
-                                                    ${v.chilometraggio ? `<p class="text-sm text-gray-500">${v.chilometraggio} km</p>` : ''}
+                                                    <p class="text-gray-400">${v.marca || ''} ${v.modello || ''} ${v.anno ? `(${v.anno})` : ''}</p>
+                                                    ${v.chilometraggio ? `<p class="text-sm text-gray-500">📍 ${v.chilometraggio} km</p>` : ''}
+                                                    <p class="text-xs text-gray-500 mt-1">
+                                                        ${stats.count} interventi • €${stats.totalCosto.toFixed(2)}
+                                                    </p>
                                                 </div>
                                                 <div class="flex gap-2">
-                                                    <button onclick="showClientCode('${v.targa}')" class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 font-semibold" title="Codice Cliente">
-                                                        👤 Codice
+                                                    <button onclick="event.stopPropagation(); openShareModal('${v.targa}')" class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 font-semibold" title="Condividi">
+                                                        🔗
                                                     </button>
-                                                    <button onclick="deleteVehicle('${v.targa}')" class="text-red-500 hover:bg-red-50 px-3 py-2 rounded text-sm font-bold">
+                                                    <button onclick="event.stopPropagation(); deleteVehicle('${v.targa}')" class="text-red-500 hover:bg-red-50 px-3 py-2 rounded text-sm font-bold">
                                                         ✕
                                                     </button>
                                                 </div>
                                             </div>
                                         </div>
-                                    `).join('')}
+                                    `}).join('')}
                                 </div>
                             `}
                         </div>
@@ -465,7 +660,6 @@ Il cliente potrà vedere solo lo storico del suo veicolo.
                 return;
             }
 
-            // DÉTAIL VÉHICULE (Mécanicien ou Client)
             const vehicle = vehicles[currentVehicle];
             if (!vehicle) {
                 app.innerHTML = `
@@ -482,6 +676,8 @@ Il cliente potrà vedere solo lo storico del suo veicolo.
             }
 
             if (!showAddForm) {
+                const stats = getVehicleStats(currentVehicle);
+                
                 app.innerHTML = `
                     <div class="min-h-screen">
                         <div class="bg-blue-600 text-white p-4 shadow-lg">
@@ -490,7 +686,7 @@ Il cliente potrà vedere solo lo storico del suo veicolo.
                                     <button onclick="currentVehicle=null; render();" class="hover:bg-blue-700 px-3 py-2 rounded">
                                         ← Indietro
                                     </button>
-                                ` : ''}
+                                ` : '<div></div>'}
                                 <button onclick="logout()" class="px-3 py-2 bg-red-500 rounded hover:bg-red-600 text-sm">
                                     Esci
                                 </button>
@@ -499,7 +695,7 @@ Il cliente potrà vedere solo lo storico del suo veicolo.
                                 <img src="logo.png" alt="TANO" class="h-10 w-10 object-contain rounded-lg bg-white p-1" onerror="this.style.display='none'">
                                 <div>
                                     <h1 class="text-2xl font-bold">${vehicle.targa}</h1>
-                                    <p class="text-blue-100">${vehicle.marca} ${vehicle.modello} ${vehicle.anno ? `(${vehicle.anno})` : ''}</p>
+                                    <p class="text-blue-100">${vehicle.marca || ''} ${vehicle.modello || ''} ${vehicle.anno ? `(${vehicle.anno})` : ''}</p>
                                     ${vehicle.chilometraggio ? `<p class="text-sm text-blue-100">📍 ${vehicle.chilometraggio} km</p>` : ''}
                                 </div>
                             </div>
@@ -507,26 +703,27 @@ Il cliente potrà vedere solo lo storico del suo veicolo.
 
                         <div class="p-4">
                             ${isMechanicMode ? `
-                                <button onclick="showAddForm=true; render();" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold mb-4 hover:bg-green-700">
-                                    ➕ Nuovo Intervento
-                                </button>
-                                <button onclick="exportToExcel()" class="w-full bg-green-700 text-white py-2 rounded-lg font-semibold hover:bg-green-800 mb-4">
-                                    📊 Esporta CSV
-                                </button>
+                                <div class="grid grid-cols-3 gap-2 mb-4">
+                                    <button onclick="showAddForm=true; render();" class="bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700">
+                                        ➕ Nuovo
+                                    </button>
+                                    <button onclick="exportToExcel()" class="bg-green-700 text-white py-3 rounded-lg font-semibold hover:bg-green-800">
+                                        📊 CSV
+                                    </button>
+                                    <button onclick="openShareModal('${currentVehicle}')" class="bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">
+                                        🔗 Link
+                                    </button>
+                                </div>
                             ` : `
                                 <div class="bg-blue-900 bg-opacity-50 text-white p-4 rounded-lg mb-4 text-center border border-blue-500">
                                     <p class="text-sm font-semibold">👤 Modalità Cliente - Solo Lettura</p>
-                                    <p class="text-xs text-blue-200 mt-1">Puoi consultare lo storico ma non modificare</p>
                                 </div>
                             `}
 
-                            <h2 class="text-xl font-bold mb-3 text-white">📋 Storico (${(vehicle.interventi || []).length})</h2>
+                            <h2 class="text-xl font-bold mb-3 text-white">📋 Storico (${stats.count})</h2>
 
-                            ${(vehicle.interventi || []).length === 0 ? `
+                            ${stats.count === 0 ? `
                                 <div class="bg-white rounded-lg shadow p-8 text-center text-gray-400">
-                                    <svg class="mx-auto mb-3 opacity-50" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke-width="2"/>
-                                    </svg>
                                     <p>Nessun intervento registrato</p>
                                 </div>
                             ` : `
@@ -562,7 +759,6 @@ Il cliente potrà vedere solo lo storico del suo veicolo.
                     </div>
                 `;
             } else {
-                // FORMULAIRE AJOUT INTERVENTION
                 const today = new Date().toISOString().split('T')[0];
                 app.innerHTML = `
                     <div class="min-h-screen">
@@ -656,11 +852,10 @@ Il cliente potrà vedere solo lo storico del suo veicolo.
             }
         }
 
-        // ========== DÉMARRAGE ==========
         loadData();
+        checkUrlParams();
         render();
         
-        // Service Worker pour PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('service-worker.js')
