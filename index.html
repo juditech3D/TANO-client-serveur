@@ -1,989 +1,676 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sistema di tracciamento interventi meccanici - Tano Evoluzione">
-    <meta name="theme-color" content="#2563eb">
-    <title>Tano Evoluzione - Sistema NFC</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon-192.png">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    
-    <style>
-        html, body {
-            height: 100%;
-            margin: 0;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: url('Background.png') no-repeat center center fixed;
-            background-size: cover;
-            color: white;
-            min-height: 100vh;
-            opacity: 0;
-            animation: fadeIn 1s ease-in-out forwards;
-        }
-        body::before {
-            content: "";
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.65) 50%, rgba(0,0,0,0.85) 100%);
-            backdrop-filter: blur(2px);
-            z-index: -1;
-        }
-        #app {
-            background: rgba(0,0,0,0.45);
-            min-height: 100vh;
-            padding-bottom: 50px;
-        }
-        .bg-white {
-            background-color: rgba(30,30,35,0.88) !important;
-            backdrop-filter: blur(12px) saturate(120%);
-            border: 1px solid rgba(255,255,255,0.15);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            transition: all 0.4s ease;
-        }
-        .bg-white p, .bg-white span, .bg-white h2, .bg-white h3 {
-            color: #e5e7eb !important;
-        }
-        .text-gray-600, .text-gray-500, .text-gray-700 {
-            color: #d1d5db !important;
-        }
-        .text-blue-600 {
-            color: #60a5fa !important;
-        }
-        input, textarea, select {
-            color: #f3f4f6 !important;
-            background-color: rgba(45,45,50,0.95) !important;
-            border: 2px solid rgba(75,85,99,0.8) !important;
-        }
-        input::placeholder, textarea::placeholder {
-            color: #9ca3af !important;
-        }
-        input:focus, textarea:focus, select:focus {
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(59,130,246,0.3);
-            border-color: #3b82f6 !important;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 16px 24px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            z-index: 1000;
-            animation: slideIn 0.3s ease-out;
-        }
-        @keyframes slideIn {
-            from { transform: translateX(400px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            padding: 20px;
-        }
-        .modal-content {
-            background: rgba(30,30,35,0.95);
-            border-radius: 12px;
-            padding: 24px;
-            max-width: 500px;
-            width: 100%;
-            border: 1px solid rgba(255,255,255,0.15);
-        }
-        #qrcode {
-            display: flex;
-            justify-content: center;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            margin: 16px 0;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Sistema di tracciamento interventi meccanici - Tano Evoluzione"/>
+  <meta name="theme-color" content="#2563eb"/>
+  <title>Tano Evoluzione - Sistema NFC</title>
+
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icon-192.png"/>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: url('Background.png') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      min-height: 100vh;
+      opacity: 0;
+      animation: fadeIn 1s ease-in-out forwards;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.65) 50%, rgba(0,0,0,0.85) 100%);
+      backdrop-filter: blur(2px);
+      z-index: -1;
+    }
+    #app { background: rgba(0,0,0,0.45); min-height: 100vh; padding-bottom: 50px; }
+    .bg-white {
+      background-color: rgba(30,30,35,0.88) !important;
+      backdrop-filter: blur(12px) saturate(120%);
+      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      transition: all 0.4s ease;
+    }
+    .bg-white p, .bg-white span, .bg-white h2, .bg-white h3 { color: #e5e7eb !important; }
+    .text-gray-600, .text-gray-500, .text-gray-700 { color: #d1d5db !important; }
+    .text-blue-600 { color: #60a5fa !important; }
+    input, textarea, select {
+      color: #f3f4f6 !important;
+      background-color: rgba(45,45,50,0.95) !important;
+      border: 2px solid rgba(75,85,99,0.8) !important;
+    }
+    input::placeholder, textarea::placeholder { color: #9ca3af !important; }
+    input:focus, textarea:focus, select:focus {
+      outline: none; box-shadow: 0 0 0 4px rgba(59,130,246,0.3); border-color: #3b82f6 !important;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .notification {
+      position: fixed; top: 20px; right: 20px; padding: 16px 24px; border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; animation: slideIn 0.3s ease-out;
+    }
+    @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+    .modal-content { background: rgba(30,30,35,0.95); border-radius: 12px; padding: 24px; max-width: 500px; width: 100%; border: 1px solid rgba(255,255,255,0.15); }
+    #qrcode { display: flex; justify-content: center; padding: 20px; background: white; border-radius: 8px; margin: 16px 0; }
+  </style>
 </head>
-<script type="module" src="public/js/firebase-config.js"></script>
-<script type="module" src="public/js/auth.js"></script>
 
 <body>
-    <div id="app">Caricamento...</div>
-
-    <script>
-        const MECHANIC_PIN = "1234";
-        
-        let vehicles = {};
-        let currentVehicle = null;
-        let showAddForm = false;
-        let isMechanicMode = false;
-        let isClientMode = false;
-        let showLoginScreen = true;
-        let searchQuery = '';
-        let showShareModal = false;
-        let shareModalTarga = null;
-
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'slideIn 0.3s ease-out reverse';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-
-        function generateClientCode(targa) {
-            const year = new Date().getFullYear();
-            return `${targa}-${year}`;
-        }
-
-        function verifyClientCode(code) {
-            console.log('🔍 Vérification code:', code);
-            console.log('📦 Véhicules disponibles:', Object.keys(vehicles));
-            
-            const parts = code.toUpperCase().split('-');
-            console.log('📝 Parts:', parts);
-            
-            if (parts.length < 2) {
-                console.log('❌ Pas assez de parties');
-                return null;
-            }
-            
-            const year = parts[parts.length - 1];
-            const targa = parts.slice(0, -1).join('-');
-            
-            console.log('📅 Année:', year);
-            console.log('🚗 Targa extraite:', targa);
-            
-            const currentYear = new Date().getFullYear().toString();
-            const lastYear = (currentYear - 1).toString();
-            
-            console.log('✅ Année actuelle:', currentYear);
-            console.log('✅ Année précédente:', lastYear);
-            console.log('🔎 Véhicule existe?', vehicles[targa] ? 'OUI' : 'NON');
-            
-            if ((year === currentYear || year === lastYear) && vehicles[targa]) {
-                console.log('✅ CODE VALIDE!');
-                return targa;
-            }
-            
-            console.log('❌ CODE INVALIDE');
-            return null;
-        }
-
-        function getClientLink(targa) {
-            const code = vehicles[targa].clientCode || generateClientCode(targa);
-            const baseUrl = window.location.origin + window.location.pathname;
-            return `${baseUrl}?code=${encodeURIComponent(code)}`;
-        }
-
-        function checkUrlParams() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const code = urlParams.get('code');
-            
-            if (code) {
-                const targa = verifyClientCode(code);
-                if (targa) {
-                    isClientMode = true;
-                    isMechanicMode = false;
-                    showLoginScreen = false;
-                    currentVehicle = targa;
-                    showNotification('✅ Accesso automatico effettuato');
-                    
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } else {
-                    showNotification('❌ Link non valido o scaduto', 'error');
-                }
-            }
-        }
-
-        function loadData() {
-            try {
-                const stored = localStorage.getItem('garage_vehicles');
-                if (stored) {
-                    vehicles = JSON.parse(stored);
-                }
-            } catch (error) {
-                console.log('Première utilisation');
-                vehicles = {};
-            }
-        }
-
-        function saveData() {
-            try {
-                localStorage.setItem('garage_vehicles', JSON.stringify(vehicles));
-                showNotification('✅ Dati salvati');
-            } catch (error) {
-                console.error('Erreur:', error);
-                showNotification('❌ Errore salvataggio', 'error');
-            }
-        }
-
-        function login() {
-            const code = document.getElementById('loginCode').value.trim();
-            
-            if (!code) {
-                showNotification('❌ Inserisci un codice', 'error');
-                return;
-            }
-
-            if (code === MECHANIC_PIN) {
-                isMechanicMode = true;
-                isClientMode = false;
-                showLoginScreen = false;
-                currentVehicle = null;
-                showNotification('✅ Accesso meccanico');
-                render();
-                return;
-            }
-
-            const targa = verifyClientCode(code);
-            if (targa) {
-                isClientMode = true;
-                isMechanicMode = false;
-                showLoginScreen = false;
-                currentVehicle = targa;
-                showNotification('✅ Benvenuto');
-                render();
-                return;
-            }
-
-            showNotification('❌ Codice non valido', 'error');
-        }
-
-        function logout() {
-            if (confirm('Sei sicuro di voler uscire?')) {
-                isMechanicMode = false;
-                isClientMode = false;
-                showLoginScreen = true;
-                currentVehicle = null;
-                showAddForm = false;
-                searchQuery = '';
-                showNotification('👋 Disconnesso');
-                render();
-            }
-        }
-
-        function addVehicle() {
-            if (!isMechanicMode) {
-                showNotification('❌ Accesso negato', 'error');
-                return;
-            }
-
-            const targa = document.getElementById('newVehicleTarga').value.toUpperCase().trim();
-            const marca = document.getElementById('newVehicleMarca').value.trim();
-            const modello = document.getElementById('newVehicleModello').value.trim();
-            const anno = document.getElementById('newVehicleAnno').value.trim();
-            const km = document.getElementById('newVehicleKm').value.trim();
-
-            if (!targa) {
-                showNotification('❌ Targa obbligatoria', 'error');
-                return;
-            }
-
-            if (vehicles[targa]) {
-                showNotification('❌ Veicolo già esistente', 'error');
-                return;
-            }
-
-            vehicles[targa] = {
-                targa: targa,
-                marca: marca,
-                modello: modello,
-                anno: anno,
-                chilometraggio: km,
-                interventi: [],
-                clientCode: generateClientCode(targa),
-                createdAt: new Date().toISOString()
-            };
-
-            saveData();
-            currentVehicle = targa;
-            render();
-        }
-
-        function addIntervento() {
-            if (!isMechanicMode) {
-                showNotification('❌ Accesso negato', 'error');
-                return;
-            }
-
-            const data = document.getElementById('interventoData').value;
-            const tipo = document.getElementById('interventoTipo').value;
-            const descrizione = document.getElementById('interventoDesc').value.trim();
-            const ricambi = document.getElementById('interventoRicambi').value.trim();
-            const costo = document.getElementById('interventoCosto').value;
-            const km = document.getElementById('interventoKm').value;
-            const meccanico = document.getElementById('interventoMeccanico').value.trim();
-            const note = document.getElementById('interventoNote').value.trim();
-
-            if (!tipo || !descrizione) {
-                showNotification('❌ Tipo e descrizione obbligatori', 'error');
-                return;
-            }
-
-            const intervento = {
-                id: Date.now(),
-                data: data,
-                tipo: tipo,
-                descrizione: descrizione,
-                ricambi: ricambi,
-                costo: costo,
-                chilometraggio: km,
-                meccanico: meccanico,
-                note: note,
-                timestamp: new Date().toISOString()
-            };
-
-            vehicles[currentVehicle].interventi.unshift(intervento);
-            
-            if (km) {
-                vehicles[currentVehicle].chilometraggio = km;
-            }
-
-            saveData();
-            showAddForm = false;
-            render();
-        }
-
-        function deleteIntervento(id) {
-            if (!isMechanicMode) {
-                showNotification('❌ Accesso negato', 'error');
-                return;
-            }
-
-            if (!confirm('Eliminare questo intervento?')) return;
-            
-            vehicles[currentVehicle].interventi = 
-                vehicles[currentVehicle].interventi.filter(i => i.id !== id);
-            
-            saveData();
-            render();
-        }
-
-        function deleteVehicle(targa) {
-            if (!isMechanicMode) {
-                showNotification('❌ Accesso negato', 'error');
-                return;
-            }
-
-            if (!confirm(`Eliminare definitivamente il veicolo ${targa}?`)) return;
-            
-            delete vehicles[targa];
-            saveData();
-            render();
-        }
-
-        function openShareModal(targa) {
-            showShareModal = true;
-            shareModalTarga = targa;
-            render();
-            
-            setTimeout(() => {
-                const link = getClientLink(targa);
-                const qrElement = document.getElementById('qrcode');
-                if (qrElement && typeof QRCode !== 'undefined') {
-                    qrElement.innerHTML = '';
-                    new QRCode(qrElement, {
-                        text: link,
-                        width: 200,
-                        height: 200
-                    });
-                }
-            }, 100);
-        }
-
-        function closeShareModal() {
-            showShareModal = false;
-            shareModalTarga = null;
-            render();
-        }
-
-        function copyLink(targa) {
-            const link = getClientLink(targa);
-            
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(link).then(() => {
-                    showNotification('🔗 Link copiato negli appunti');
-                });
-            } else {
-                const textarea = document.createElement('textarea');
-                textarea.value = link;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                showNotification('🔗 Link copiato');
-            }
-        }
-
-        function shareViaWhatsApp(targa) {
-            const vehicle = vehicles[targa];
-            const link = getClientLink(targa);
-            const message = `Ciao! Ecco il link per consultare lo storico del tuo veicolo ${targa} (${vehicle.marca} ${vehicle.modello}):\n\n${link}\n\nTano Evoluzione - Bosch Car Service`;
-            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-            window.open(whatsappUrl, '_blank');
-        }
-
-        function shareViaEmail(targa) {
-            const vehicle = vehicles[targa];
-            const link = getClientLink(targa);
-            const subject = `Storico Veicolo ${targa}`;
-            const body = `Gentile Cliente,\n\nEcco il link per consultare lo storico completo del suo veicolo ${targa} (${vehicle.marca} ${vehicle.modello}):\n\n${link}\n\nPotrà visualizzare tutti gli interventi effettuati sul suo veicolo in qualsiasi momento.\n\nCordiali saluti,\nTano Evoluzione - Bosch Car Service`;
-            window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        }
-
-        function updateSearch(query) {
-            searchQuery = query.toLowerCase();
-            render();
-        }
-
-        function getFilteredVehicles() {
-            if (!searchQuery) return Object.values(vehicles);
-            
-            return Object.values(vehicles).filter(v => {
-                return v.targa.toLowerCase().includes(searchQuery) ||
-                       (v.marca && v.marca.toLowerCase().includes(searchQuery)) ||
-                       (v.modello && v.modello.toLowerCase().includes(searchQuery));
-            });
-        }
-
-        function exportToExcel() {
-            const vehicle = vehicles[currentVehicle];
-            let csv = "Data;Tipo;Descrizione;Ricambi;Costo;Chilometraggio;Meccanico;Note\n";
-            
-            (vehicle.interventi || []).forEach(inter => {
-                csv += `${inter.data || ''};`;
-                csv += `${inter.tipo || ''};`;
-                csv += `${(inter.descrizione || '').replace(/;/g, ',')};`;
-                csv += `${(inter.ricambi || '').replace(/;/g, ',')};`;
-                csv += `${inter.costo || ''};`;
-                csv += `${inter.chilometraggio || ''};`;
-                csv += `${inter.meccanico || ''};`;
-                csv += `${(inter.note || '').replace(/;/g, ',')}\n`;
-            });
-
-            const element = document.createElement('a');
-            element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
-            element.setAttribute('download', vehicle.targa + '_' + new Date().toISOString().split('T')[0] + '.csv');
-            element.style.display = 'none';
-            document.body.appendChild(element);
-            element.click();
-            document.body.removeChild(element);
-            
-            showNotification('📊 CSV esportato');
-        }
-
-        function getVehicleStats(targa) {
-            const vehicle = vehicles[targa];
-            const interventi = vehicle.interventi || [];
-            
-            const totalCosto = interventi.reduce((sum, i) => sum + (parseFloat(i.costo) || 0), 0);
-            const ultimoIntervento = interventi[0]?.data || 'Mai';
-            
-            return { totalCosto, ultimoIntervento, count: interventi.length };
-        }
-
-        function render() {
-            const app = document.getElementById('app');
-            
-            // Nettoyer les modals existants
-            const existingModals = document.querySelectorAll('.modal');
-            existingModals.forEach(modal => modal.remove());
-
-            if (showShareModal && shareModalTarga) {
-                const vehicle = vehicles[shareModalTarga];
-                const code = vehicle.clientCode || generateClientCode(shareModalTarga);
-                const link = getClientLink(shareModalTarga);
-                
-                app.innerHTML = `
-                    <div class="modal" onclick="if(event.target.classList.contains('modal')) { showShareModal=false; render(); }">
-                        <div class="modal-content" onclick="event.stopPropagation()">
-                            <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-xl font-bold text-white">🔗 Condividi Accesso Cliente</h2>
-                                <button onclick="showShareModal=false; shareModalTarga=null; render();" class="text-white hover:text-red-400 text-4xl font-bold leading-none px-3" style="margin-top: -8px;">&times;</button>
-                            </div>
-                            
-                            <div class="text-center mb-4">
-                                <p class="text-gray-300 mb-2">Veicolo: <strong class="text-white">${shareModalTarga}</strong></p>
-                                <p class="text-gray-400 text-sm">${vehicle.marca} ${vehicle.modello}</p>
-                            </div>
-
-                            <div id="qrcode"></div>
-
-                            <div class="bg-gray-800 p-3 rounded mb-4">
-                                <p class="text-xs text-gray-400 mb-1">Link diretto:</p>
-                                <p class="text-sm text-blue-400 break-all">${link}</p>
-                            </div>
-
-                            <div class="bg-gray-800 p-3 rounded mb-4">
-                                <p class="text-xs text-gray-400 mb-1">Codice manuale:</p>
-                                <p class="text-lg text-white font-bold text-center">${code}</p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <button onclick="copyLink('${shareModalTarga}')" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">
-                                    📋 Copia Link
-                                </button>
-                                <button onclick="shareViaWhatsApp('${shareModalTarga}')" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700">
-                                    📱 Invia via WhatsApp
-                                </button>
-                                <button onclick="shareViaEmail('${shareModalTarga}')" class="w-full bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700">
-                                    📧 Invia via Email
-                                </button>
-                                <button onclick="showShareModal=false; shareModalTarga=null; render();" class="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700">
-                                    ✕ Chiudi
-                                </button>
-                            </div>
-
-                            <p class="text-xs text-gray-500 text-center mt-4">
-                                Il cliente potrà vedere solo lo storico di questo veicolo
-                            </p>
-                        </div>
-                    </div>
-                `;
-                
-                setTimeout(() => {
-                    const qrElement = document.getElementById('qrcode');
-                    if (qrElement && typeof QRCode !== 'undefined') {
-                        qrElement.innerHTML = '';
-                        new QRCode(qrElement, {
-                            text: link,
-                            width: 200,
-                            height: 200
-                        });
-                    }
-                }, 100);
-                return;
-            }
-
-            if (showLoginScreen) {
-                app.innerHTML = `
-                    <div class="min-h-screen flex items-center justify-center p-4">
-                        <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-                            <img src="logo.png" alt="TANO Logo" class="h-24 w-24 mx-auto mb-6 object-contain" onerror="this.style.display='none'">
-                            <h1 class="text-3xl font-bold mb-2 text-center">Tano Evoluzione</h1>
-                            <p class="text-gray-400 mb-8 text-center">Bosch car Service</p>
-                            
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-semibold mb-2" style="color:#e5e7eb !important">Inserisci il codice:</label>
-                                    <input 
-                                        type="text" 
-                                        id="loginCode" 
-                                        placeholder="Codice Meccanico o Cliente"
-                                        class="w-full px-4 py-3 border-2 rounded-lg text-center text-xl font-bold uppercase"
-                                        onkeypress="if(event.key==='Enter') login()"
-                                        autofocus
-                                    >
-                                </div>
-                                
-                                <button onclick="login()" class="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700">
-                                    🔓 Accedi
-                                </button>
-
-                                <div class="mt-6 pt-6 border-t border-gray-700">
-                                    <p class="text-xs text-gray-500 text-center">
-                                        🔧 <strong>Meccanico:</strong> Usa il PIN<br>
-                                        👤 <strong>Cliente:</strong> Usa il codice ricevuto o clicca sul link
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-
-            if (!currentVehicle && isMechanicMode) {
-                const vehiclesList = getFilteredVehicles();
-                
-                app.innerHTML = `
-                    <div class="min-h-screen">
-                        <div class="bg-blue-600 text-white p-4 shadow-lg">
-                            <div class="flex justify-between items-center">
-                                <div class="flex items-center gap-3">
-                                    <img src="logo.png" alt="TANO" class="h-12 w-12 object-contain rounded-lg bg-white p-1" onerror="this.style.display='none'">
-                                    <div>
-                                        <h1 class="text-2xl font-bold">Tano Evoluzione</h1>
-                                        <p class="text-xs text-blue-100">🔧 Modo Meccanico</p>
-                                    </div>
-                                </div>
-                                <button onclick="logout()" class="px-4 py-2 bg-red-500 rounded hover:bg-red-600 font-semibold">
-                                    Esci
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="p-4">
-                            <div class="bg-white rounded-lg shadow p-4 mb-4">
-                                <h2 class="text-lg font-bold mb-3">➕ Nuovo Veicolo</h2>
-                                <div class="space-y-2">
-                                    <input type="text" id="newVehicleTarga" placeholder="Targa *" class="w-full px-3 py-2 border rounded uppercase font-bold">
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <input type="text" id="newVehicleMarca" placeholder="Marca" class="px-3 py-2 border rounded">
-                                        <input type="text" id="newVehicleModello" placeholder="Modello" class="px-3 py-2 border rounded">
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <input type="number" id="newVehicleAnno" placeholder="Anno" class="px-3 py-2 border rounded">
-                                        <input type="number" id="newVehicleKm" placeholder="Chilometraggio" class="px-3 py-2 border rounded">
-                                    </div>
-                                    <button onclick="addVehicle()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">
-                                        Aggiungi Veicolo
-                                    </button>
-                                </div>
-                            </div>
-
-                            ${Object.keys(vehicles).length > 3 ? `
-                                <div class="mb-4">
-                                    <input 
-                                        type="text" 
-                                        placeholder="🔍 Cerca veicolo..." 
-                                        class="w-full px-4 py-3 border-2 rounded-lg"
-                                        oninput="updateSearch(this.value)"
-                                        value="${searchQuery}"
-                                    >
-                                </div>
-                            ` : ''}
-
-                            <h2 class="text-xl font-bold mb-3 text-white">🚗 Veicoli (${vehiclesList.length})</h2>
-                            
-                            ${vehiclesList.length === 0 ? `
-                                <div class="bg-white rounded-lg shadow p-8 text-center text-gray-400">
-                                    <p>${searchQuery ? 'Nessun veicolo trovato' : 'Nessun veicolo registrato'}</p>
-                                </div>
-                            ` : `
-                                <div class="space-y-3">
-                                    ${vehiclesList.map(v => {
-                                        const stats = getVehicleStats(v.targa);
-                                        return `
-                                        <div class="bg-white rounded-lg shadow p-4">
-                                            <div class="flex justify-between items-center">
-                                                <div class="flex-1 cursor-pointer" onclick="currentVehicle='${v.targa}'; render();">
-                                                    <span class="text-xl font-bold">${v.targa}</span>
-                                                    <p class="text-gray-400">${v.marca || ''} ${v.modello || ''} ${v.anno ? `(${v.anno})` : ''}</p>
-                                                    ${v.chilometraggio ? `<p class="text-sm text-gray-500">📍 ${v.chilometraggio} km</p>` : ''}
-                                                    <p class="text-xs text-gray-500 mt-1">
-                                                        ${stats.count} interventi • €${stats.totalCosto.toFixed(2)}
-                                                    </p>
-                                                </div>
-                                                <div class="flex gap-2">
-                                                    <button onclick="event.stopPropagation(); openShareModal('${v.targa}')" class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 font-semibold" title="Condividi">
-                                                        🔗
-                                                    </button>
-                                                    <button onclick="event.stopPropagation(); deleteVehicle('${v.targa}')" class="text-red-500 hover:bg-red-50 px-3 py-2 rounded text-sm font-bold">
-                                                        ✕
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `}).join('')}
-                                </div>
-                            `}
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-
-            const vehicle = vehicles[currentVehicle];
-            if (!vehicle) {
-                app.innerHTML = `
-                    <div class="min-h-screen flex items-center justify-center">
-                        <div class="bg-white rounded-lg shadow p-8 text-center">
-                            <p class="text-gray-400 mb-4">Veicolo non trovato</p>
-                            <button onclick="logout()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                                Torna all'accesso
-                            </button>
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-
-            if (!showAddForm) {
-                const stats = getVehicleStats(currentVehicle);
-                
-                app.innerHTML = `
-                    <div class="min-h-screen">
-                        <div class="bg-blue-600 text-white p-4 shadow-lg">
-                            <div class="flex justify-between items-center mb-2">
-                                ${isMechanicMode ? `
-                                    <button onclick="currentVehicle=null; render();" class="hover:bg-blue-700 px-3 py-2 rounded">
-                                        ← Indietro
-                                    </button>
-                                ` : '<div></div>'}
-                                <button onclick="logout()" class="px-3 py-2 bg-red-500 rounded hover:bg-red-600 text-sm">
-                                    Esci
-                                </button>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <img src="logo.png" alt="TANO" class="h-10 w-10 object-contain rounded-lg bg-white p-1" onerror="this.style.display='none'">
-                                <div>
-                                    <h1 class="text-2xl font-bold">${vehicle.targa}</h1>
-                                    <p class="text-blue-100">${vehicle.marca || ''} ${vehicle.modello || ''} ${vehicle.anno ? `(${vehicle.anno})` : ''}</p>
-                                    ${vehicle.chilometraggio ? `<p class="text-sm text-blue-100">📍 ${vehicle.chilometraggio} km</p>` : ''}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-4">
-                            ${isMechanicMode ? `
-                                <div class="grid grid-cols-3 gap-2 mb-4">
-                                    <button onclick="showAddForm=true; render();" class="bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700">
-                                        ➕ Nuovo
-                                    </button>
-                                    <button onclick="exportToExcel()" class="bg-green-700 text-white py-3 rounded-lg font-semibold hover:bg-green-800">
-                                        📊 CSV
-                                    </button>
-                                    <button onclick="openShareModal('${currentVehicle}')" class="bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">
-                                        🔗 Link
-                                    </button>
-                                </div>
-                            ` : `
-                                <div class="bg-blue-900 bg-opacity-50 text-white p-4 rounded-lg mb-4 text-center border border-blue-500">
-                                    <p class="text-sm font-semibold">👤 Modalità Cliente - Solo Lettura</p>
-                                </div>
-                            `}
-
-                            <h2 class="text-xl font-bold mb-3 text-white">📋 Storico (${stats.count})</h2>
-
-                            ${stats.count === 0 ? `
-                                <div class="bg-white rounded-lg shadow p-8 text-center text-gray-400">
-                                    <p>Nessun intervento registrato</p>
-                                </div>
-                            ` : `
-                                <div class="space-y-3">
-                                    ${(vehicle.interventi || []).map(inter => `
-                                        <div class="bg-white rounded-lg shadow p-4">
-                                            <div class="flex justify-between items-start mb-2">
-                                                <div class="flex-1">
-                                                    <div class="text-sm text-gray-400 mb-1">📅 ${inter.data || 'Data non specificata'}</div>
-                                                    <h3 class="font-bold text-lg text-blue-400">${inter.tipo}</h3>
-                                                </div>
-                                                ${isMechanicMode ? `
-                                                    <button onclick="deleteIntervento(${inter.id})" class="text-red-500 hover:bg-red-50 px-2 py-1 rounded text-sm font-bold">✕</button>
-                                                ` : ''}
-                                            </div>
-                                            <p class="text-gray-300 mb-2">${inter.descrizione}</p>
-                                            ${inter.ricambi ? `<div class="text-sm text-gray-400 mb-1"><span class="font-semibold">🔧 Ricambi:</span> ${inter.ricambi}</div>` : ''}
-                                            ${inter.note ? `
-                                                <div class="bg-yellow-900 bg-opacity-30 border-l-4 border-yellow-500 p-3 mt-2 rounded">
-                                                    <p class="text-sm text-gray-300"><span class="font-semibold">💬 Note:</span> ${inter.note}</p>
-                                                </div>
-                                            ` : ''}
-                                            <div class="flex flex-wrap gap-3 mt-2 text-sm">
-                                                ${inter.costo ? `<div class="text-green-400 font-semibold">💰 ${inter.costo} €</div>` : ''}
-                                                ${inter.chilometraggio ? `<div class="text-gray-400 font-semibold">📍 ${inter.chilometraggio} km</div>` : ''}
-                                                ${inter.meccanico ? `<div class="text-gray-400">👤 ${inter.meccanico}</div>` : ''}
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            `}
-                        </div>
-                    </div>
-                `;
-            } else {
-                const today = new Date().toISOString().split('T')[0];
-                app.innerHTML = `
-                    <div class="min-h-screen">
-                        <div class="bg-blue-600 text-white p-4 shadow-lg">
-                            <div class="flex items-center gap-3">
-                                <img src="logo.png" alt="TANO" class="h-10 w-10 object-contain rounded-lg bg-white p-1" onerror="this.style.display='none'">
-                                <div>
-                                    <h1 class="text-xl font-bold">${vehicle.targa}</h1>
-                                    <p class="text-blue-100">➕ Nuovo Intervento</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-4">
-                            <div class="bg-white rounded-lg shadow p-4">
-                                <div class="space-y-3">
-                                    <div>
-                                        <label class="block text-sm font-semibold mb-1">📅 Data *</label>
-                                        <input type="date" id="interventoData" value="${today}" class="w-full px-3 py-2 border rounded">
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-sm font-semibold mb-1">🔧 Tipo *</label>
-                                        <select id="interventoTipo" class="w-full px-3 py-2 border rounded">
-                                            <option value="">Seleziona...</option>
-                                            <option value="Cambio Olio">Cambio Olio</option>
-                                            <option value="Filtro Olio">Filtro Olio</option>
-                                            <option value="Filtro Aria">Filtro Aria</option>
-                                            <option value="Filtro Carburante">Filtro Carburante</option>
-                                            <option value="Filtro Abitacolo">Filtro Abitacolo</option>
-                                            <option value="Candele">Candele</option>
-                                            <option value="Distribuzione">Distribuzione</option>
-                                            <option value="Freni">Freni</option>
-                                            <option value="Pneumatici">Pneumatici</option>
-                                            <option value="Frizione">Frizione</option>
-                                            <option value="Revisione">Revisione</option>
-                                            <option value="Aria Condizionata">Aria Condizionata</option>
-                                            <option value="Diagnostica">Diagnostica</option>
-                                            <option value="Carrozzeria">Carrozzeria</option>
-                                            <option value="Elettrico/Elettrauto">Elettrico/Elettrauto</option>
-                                            <option value="Sospensioni">Sospensioni</option>
-                                            <option value="Scarico">Scarico</option>
-                                            <option value="Altro">Altro</option>
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-sm font-semibold mb-1">📝 Descrizione *</label>
-                                        <textarea id="interventoDesc" rows="3" placeholder="Dettagli intervento..." class="w-full px-3 py-2 border rounded"></textarea>
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-sm font-semibold mb-1">🔩 Ricambi</label>
-                                        <input type="text" id="interventoRicambi" placeholder="Es: Pastiglie anteriori..." class="w-full px-3 py-2 border rounded">
-                                    </div>
-
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label class="block text-sm font-semibold mb-1">💰 Costo (€)</label>
-                                            <input type="number" id="interventoCosto" step="0.01" placeholder="0.00" class="w-full px-3 py-2 border rounded">
-                                        </div>
-                                        <div>
-                                            <label class="block text-sm font-semibold mb-1">📍 Km</label>
-                                            <input type="number" id="interventoKm" value="${vehicle.chilometraggio || ''}" placeholder="km" class="w-full px-3 py-2 border rounded">
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-sm font-semibold mb-1">👤 Meccanico</label>
-                                        <input type="text" id="interventoMeccanico" placeholder="Nome meccanico" class="w-full px-3 py-2 border rounded">
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-sm font-semibold mb-1">💬 Note</label>
-                                        <textarea id="interventoNote" rows="3" placeholder="Osservazioni, raccomandazioni..." class="w-full px-3 py-2 border rounded"></textarea>
-                                    </div>
-
-                                    <div class="flex gap-2 pt-2">
-                                        <button onclick="addIntervento()" class="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700">
-                                            ✅ Salva
-                                        </button>
-                                        <button onclick="showAddForm=false; render();" class="flex-1 bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700">
-                                            ❌ Annulla
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        loadData();
-        checkUrlParams();
-        render();
-        
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(reg => console.log('✅ Service Worker OK'))
-                    .catch(err => console.log('❌ SW Error:', err));
-            });
-        }
-    </script>
-
-<!-- Firebase anonymous auth + Firestore sync (injected) -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
-  import { getStorage } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-storage.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAgY9J6un3pftW1t4H4tD_gliY_00Man0A",
-    authDomain: "tano-garage.firebaseapp.com",
-    projectId: "tano-garage",
-    storageBucket: "tano-garage.firebasestorage.app",
-    appId: "1:374916118237:web:f52da64bcb9234baa28d34"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db   = getFirestore(app);
-  const sto  = getStorage(app);
-  window.firebaseAuth = auth;
-  window.firebaseDB   = db;
-  window.firebaseSto  = sto;
-
-  onAuthStateChanged(auth, (user) => {
-    if (!user) {
-      signInAnonymously(auth).catch((e) => console.error("Anon auth error:", e));
-    } else {
-      window.firebaseUser = user;
-      console.log("✅ Firebase anonyme:", user.uid);
+  <div id="app">Caricamento...</div>
+
+  <!-- ============ APP LOGIC (UI) ============ -->
+  <script>
+    const MECHANIC_PIN = "1234";
+
+    let vehicles = {};
+    let currentVehicle = null;
+    let showAddForm = false;
+    let isMechanicMode = false;
+    let isClientMode = false;
+    let showLoginScreen = true;
+    let searchQuery = '';
+    let showShareModal = false;
+    let shareModalTarga = null;
+
+    function showNotification(message, type = 'success') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      setTimeout(() => {
+        notification.style.animation = 'slideIn 0.3s ease-out reverse';
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
     }
-  });
 
-  const FIREBASE_SYNC = true;
-
-  function getVehiclesRef() {
-    if (!window.vehicles) window.vehicles = {};
-    return window.vehicles;
-  }
-  function setVehicles(obj) { window.vehicles = obj || {}; }
-
-  window.loadData = async function loadData(){
-    try {
-      if (FIREBASE_SYNC && window.firebaseUser) {
-        const ref = doc(db, "users", window.firebaseUser.uid, "storage", "vehicles");
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          setVehicles(snap.data().vehicles || {});
-          console.log("⬇️ Vehicles from Firestore:", window.vehicles);
-          return;
-        }
-      }
-      const stored = localStorage.getItem('garage_vehicles');
-      setVehicles(stored ? JSON.parse(stored) : {});
-      console.log("⬇️ Vehicles from localStorage:", window.vehicles);
-    } catch (e) {
-      console.warn("loadData fallback localStorage:", e);
-      const stored = localStorage.getItem('garage_vehicles');
-      setVehicles(stored ? JSON.parse(stored) : {});
+    function generateClientCode(targa) {
+      const year = new Date().getFullYear();
+      return `${targa}-${year}`;
     }
-  }
 
-  window.saveData = async function saveData(){
-    try {
-      localStorage.setItem('garage_vehicles', JSON.stringify(getVehiclesRef()));
-      if (FIREBASE_SYNC && window.firebaseUser) {
-        const ref = doc(db, "users", window.firebaseUser.uid, "storage", "vehicles");
-        await setDoc(ref, { vehicles: getVehiclesRef(), updatedAt: Date.now() }, { merge: true });
-        console.log("⬆️ Vehicles saved to Firestore");
-      }
-      if (typeof window.showNotification === "function") {
-        window.showNotification('✅ Dati salvati');
-      }
-    } catch (error) {
-      console.error('Erreur save:', error);
-      if (typeof window.showNotification === "function") {
-        window.showNotification('❌ Errore salvataggio', 'error');
+    function verifyClientCode(code) {
+      const parts = code.toUpperCase().split('-');
+      if (parts.length < 2) return null;
+      const year = parts[parts.length - 1];
+      const targa = parts.slice(0, -1).join('-');
+      const currentYear = new Date().getFullYear().toString();
+      const lastYear = (new Date().getFullYear() - 1).toString();
+      if ((year === currentYear || year === lastYear) && vehicles[targa]) return targa;
+      return null;
+    }
+
+    function getClientLink(targa) {
+      const code = vehicles[targa].clientCode || generateClientCode(targa);
+      const baseUrl = window.location.origin + window.location.pathname;
+      return `${baseUrl}?code=${encodeURIComponent(code)}`;
+    }
+
+    function checkUrlParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      if (code) {
+        const targa = verifyClientCode(code);
+        if (targa) {
+          isClientMode = true; isMechanicMode = false; showLoginScreen = false; currentVehicle = targa;
+          showNotification('✅ Accesso automatico effettuato');
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+          showNotification('❌ Link non valido o scaduto', 'error');
+        }
       }
     }
-  }
-</script>
+
+    /* plus de loadData/saveData ici – on utilisera window.loadData / window.saveData */
+
+    function login() {
+      const code = document.getElementById('loginCode').value.trim();
+      if (!code) return showNotification('❌ Inserisci un codice', 'error');
+
+      if (code === MECHANIC_PIN) {
+        isMechanicMode = true; isClientMode = false; showLoginScreen = false; currentVehicle = null;
+        showNotification('✅ Accesso meccanico'); render(); return;
+      }
+
+      const targa = verifyClientCode(code);
+      if (targa) {
+        isClientMode = true; isMechanicMode = false; showLoginScreen = false; currentVehicle = targa;
+        showNotification('✅ Benvenuto'); render(); return;
+      }
+      showNotification('❌ Codice non valido', 'error');
+    }
+
+    function logout() {
+      if (confirm('Sei sicuro di voler uscire?')) {
+        isMechanicMode = false; isClientMode = false; showLoginScreen = true;
+        currentVehicle = null; showAddForm = false; searchQuery = '';
+        showNotification('👋 Disconnesso'); render();
+      }
+    }
+
+    function addVehicle() {
+      if (!isMechanicMode) return showNotification('❌ Accesso negato', 'error');
+
+      const targa = document.getElementById('newVehicleTarga').value.toUpperCase().trim();
+      const marca = document.getElementById('newVehicleMarca').value.trim();
+      const modello = document.getElementById('newVehicleModello').value.trim();
+      const anno = document.getElementById('newVehicleAnno').value.trim();
+      const km = document.getElementById('newVehicleKm').value.trim();
+
+      if (!targa) return showNotification('❌ Targa obbligatoria', 'error');
+      if (vehicles[targa]) return showNotification('❌ Veicolo già esistente', 'error');
+
+      vehicles[targa] = {
+        targa, marca, modello, anno, chilometraggio: km,
+        interventi: [], clientCode: generateClientCode(targa), createdAt: new Date().toISOString()
+      };
+
+      window.saveData();
+      currentVehicle = targa;
+      render();
+    }
+
+    function addIntervento() {
+      if (!isMechanicMode) return showNotification('❌ Accesso negato', 'error');
+
+      const data = document.getElementById('interventoData').value;
+      const tipo = document.getElementById('interventoTipo').value;
+      const descrizione = document.getElementById('interventoDesc').value.trim();
+      const ricambi = document.getElementById('interventoRicambi').value.trim();
+      const costo = document.getElementById('interventoCosto').value;
+      const km = document.getElementById('interventoKm').value;
+      const meccanico = document.getElementById('interventoMeccanico').value.trim();
+      const note = document.getElementById('interventoNote').value.trim();
+
+      if (!tipo || !descrizione) return showNotification('❌ Tipo e descrizione obbligatori', 'error');
+
+      const intervento = {
+        id: Date.now(), data, tipo, descrizione, ricambi, costo,
+        chilometraggio: km, meccanico, note, timestamp: new Date().toISOString()
+      };
+
+      vehicles[currentVehicle].interventi.unshift(intervento);
+      if (km) vehicles[currentVehicle].chilometraggio = km;
+
+      window.saveData();
+      showAddForm = false;
+      render();
+    }
+
+    function deleteIntervento(id) {
+      if (!isMechanicMode) return showNotification('❌ Accesso negato', 'error');
+      if (!confirm('Eliminare questo intervento?')) return;
+      vehicles[currentVehicle].interventi = vehicles[currentVehicle].interventi.filter(i => i.id !== id);
+      window.saveData(); render();
+    }
+
+    function deleteVehicle(targa) {
+      if (!isMechanicMode) return showNotification('❌ Accesso negato', 'error');
+      if (!confirm(`Eliminare definitivamente il veicolo ${targa}?`)) return;
+      delete vehicles[targa];
+      window.saveData(); render();
+    }
+
+    function openShareModal(targa) {
+      showShareModal = true; shareModalTarga = targa; render();
+      setTimeout(() => {
+        const link = getClientLink(targa);
+        const qrElement = document.getElementById('qrcode');
+        if (qrElement && typeof QRCode !== 'undefined') {
+          qrElement.innerHTML = '';
+          new QRCode(qrElement, { text: link, width: 200, height: 200 });
+        }
+      }, 100);
+    }
+    function closeShareModal(){ showShareModal=false; shareModalTarga=null; render(); }
+
+    function copyLink(targa) {
+      const link = getClientLink(targa);
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(link).then(() => showNotification('🔗 Link copiato negli appunti'));
+      } else {
+        const textarea = document.createElement('textarea'); textarea.value = link;
+        document.body.appendChild(textarea); textarea.select(); document.execCommand('copy');
+        document.body.removeChild(textarea); showNotification('🔗 Link copiato');
+      }
+    }
+    function shareViaWhatsApp(targa) {
+      const v = vehicles[targa]; const link = getClientLink(targa);
+      const msg = `Ciao! Ecco il link per consultare lo storico del tuo veicolo ${targa} (${v.marca} ${v.modello}):\n\n${link}\n\nTano Evoluzione - Bosch Car Service`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+    function shareViaEmail(targa) {
+      const v = vehicles[targa]; const link = getClientLink(targa);
+      const subject = `Storico Veicolo ${targa}`;
+      const body = `Gentile Cliente,\n\nEcco il link per consultare lo storico completo del suo veicolo ${targa} (${v.marca} ${v.modello}):\n\n${link}\n\nPotrà visualizzare tutti gli interventi effettuati sul suo veicolo in qualsiasi momento.\n\nCordiali saluti,\nTano Evoluzione - Bosch Car Service`;
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
+
+    function updateSearch(q) { searchQuery = q.toLowerCase(); render(); }
+    function getFilteredVehicles() {
+      if (!searchQuery) return Object.values(vehicles);
+      return Object.values(vehicles).filter(v =>
+        v.targa.toLowerCase().includes(searchQuery) ||
+        (v.marca && v.marca.toLowerCase().includes(searchQuery)) ||
+        (v.modello && v.modello.toLowerCase().includes(searchQuery))
+      );
+    }
+
+    function exportToExcel() {
+      const vehicle = vehicles[currentVehicle];
+      let csv = "Data;Tipo;Descrizione;Ricambi;Costo;Chilometraggio;Meccanico;Note\n";
+      (vehicle.interventi || []).forEach(inter => {
+        csv += `${inter.data || ''};${inter.tipo || ''};${(inter.descrizione || '').replace(/;/g, ',')};${(inter.ricambi || '').replace(/;/g, ',')};${inter.costo || ''};${inter.chilometraggio || ''};${inter.meccanico || ''};${(inter.note || '').replace(/;/g, ',')}\n`;
+      });
+      const a = document.createElement('a');
+      a.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
+      a.setAttribute('download', vehicle.targa + '_' + new Date().toISOString().split('T')[0] + '.csv');
+      a.style.display = 'none'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      showNotification('📊 CSV esportato');
+    }
+
+    function getVehicleStats(targa) {
+      const vehicle = vehicles[targa];
+      const interventi = vehicle.interventi || [];
+      const totalCosto = interventi.reduce((sum, i) => sum + (parseFloat(i.costo) || 0), 0);
+      const ultimoIntervento = interventi[0]?.data || 'Mai';
+      return { totalCosto, ultimoIntervento, count: interventi.length };
+    }
+
+    function render() {
+      const app = document.getElementById('app');
+      const modals = document.querySelectorAll('.modal'); modals.forEach(m => m.remove());
+
+      if (showShareModal && shareModalTarga) {
+        const vehicle = vehicles[shareModalTarga];
+        const code = vehicle.clientCode || generateClientCode(shareModalTarga);
+        const link = getClientLink(shareModalTarga);
+        app.innerHTML = `
+          <div class="modal" onclick="if(event.target.classList.contains('modal')) { showShareModal=false; render(); }">
+            <div class="modal-content" onclick="event.stopPropagation()">
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white">🔗 Condividi Accesso Cliente</h2>
+                <button onclick="showShareModal=false; shareModalTarga=null; render();" class="text-white hover:text-red-400 text-4xl font-bold leading-none px-3" style="margin-top: -8px;">&times;</button>
+              </div>
+              <div class="text-center mb-4">
+                <p class="text-gray-300 mb-2">Veicolo: <strong class="text-white">${shareModalTarga}</strong></p>
+                <p class="text-gray-400 text-sm">${vehicle.marca || ''} ${vehicle.modello || ''}</p>
+              </div>
+              <div id="qrcode"></div>
+              <div class="bg-gray-800 p-3 rounded mb-4">
+                <p class="text-xs text-gray-400 mb-1">Link diretto:</p>
+                <p class="text-sm text-blue-400 break-all">${link}</p>
+              </div>
+              <div class="bg-gray-800 p-3 rounded mb-4">
+                <p class="text-xs text-gray-400 mb-1">Codice manuale:</p>
+                <p class="text-lg text-white font-bold text-center">${code}</p>
+              </div>
+              <div class="space-y-2">
+                <button onclick="copyLink('${shareModalTarga}')" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">📋 Copia Link</button>
+                <button onclick="shareViaWhatsApp('${shareModalTarga}')" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700">📱 Invia via WhatsApp</button>
+                <button onclick="shareViaEmail('${shareModalTarga}')" class="w-full bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700">📧 Invia via Email</button>
+                <button onclick="showShareModal=false; shareModalTarga=null; render();" class="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700">✕ Chiudi</button>
+              </div>
+              <p class="text-xs text-gray-500 text-center mt-4">Il cliente potrà vedere solo lo storico di questo veicolo</p>
+            </div>
+          </div>`;
+        setTimeout(() => {
+          const qr = document.getElementById('qrcode');
+          if (qr && typeof QRCode !== 'undefined') { qr.innerHTML=''; new QRCode(qr, { text: link, width: 200, height: 200 }); }
+        }, 100);
+        return;
+      }
+
+      if (showLoginScreen) {
+        app.innerHTML = `
+          <div class="min-h-screen flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+              <img src="logo.png" alt="TANO Logo" class="h-24 w-24 mx-auto mb-6 object-contain" onerror="this.style.display='none'">
+              <h1 class="text-3xl font-bold mb-2 text-center">Tano Evoluzione</h1>
+              <p class="text-gray-400 mb-8 text-center">Bosch car Service</p>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-semibold mb-2" style="color:#e5e7eb !important">Inserisci il codice:</label>
+                  <input type="text" id="loginCode" placeholder="Codice Meccanico o Cliente"
+                    class="w-full px-4 py-3 border-2 rounded-lg text-center text-xl font-bold uppercase"
+                    onkeypress="if(event.key==='Enter') login()" autofocus>
+                </div>
+                <button onclick="login()" class="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700">🔓 Accedi</button>
+                <div class="mt-6 pt-6 border-t border-gray-700">
+                  <p class="text-xs text-gray-500 text-center">🔧 <strong>Meccanico:</strong> Usa il PIN<br>👤 <strong>Cliente:</strong> Usa il codice ricevuto o clicca sul link</p>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        return;
+      }
+
+      if (!currentVehicle && isMechanicMode) {
+        const vehiclesList = getFilteredVehicles();
+        app.innerHTML = `
+          <div class="min-h-screen">
+            <div class="bg-blue-600 text-white p-4 shadow-lg">
+              <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                  <img src="logo.png" alt="TANO" class="h-12 w-12 object-contain rounded-lg bg-white p-1" onerror="this.style.display='none'">
+                  <div>
+                    <h1 class="text-2xl font-bold">Tano Evoluzione</h1>
+                    <p class="text-xs text-blue-100">🔧 Modo Meccanico</p>
+                  </div>
+                </div>
+                <button onclick="logout()" class="px-4 py-2 bg-red-500 rounded hover:bg-red-600 font-semibold">Esci</button>
+              </div>
+            </div>
+
+            <div class="p-4">
+              <div class="bg-white rounded-lg shadow p-4 mb-4">
+                <h2 class="text-lg font-bold mb-3">➕ Nuovo Veicolo</h2>
+                <div class="space-y-2">
+                  <input type="text" id="newVehicleTarga" placeholder="Targa *" class="w-full px-3 py-2 border rounded uppercase font-bold">
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="newVehicleMarca" placeholder="Marca" class="px-3 py-2 border rounded">
+                    <input type="text" id="newVehicleModello" placeholder="Modello" class="px-3 py-2 border rounded">
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="newVehicleAnno" placeholder="Anno" class="px-3 py-2 border rounded">
+                    <input type="number" id="newVehicleKm" placeholder="Chilometraggio" class="px-3 py-2 border rounded">
+                  </div>
+                  <button onclick="addVehicle()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">Aggiungi Veicolo</button>
+                </div>
+              </div>
+
+              ${Object.keys(vehicles).length > 3 ? `
+                <div class="mb-4">
+                  <input type="text" placeholder="🔍 Cerca veicolo..." class="w-full px-4 py-3 border-2 rounded-lg"
+                    oninput="updateSearch(this.value)" value="${searchQuery}">
+                </div>` : ''}
+
+              <h2 class="text-xl font-bold mb-3 text-white">🚗 Veicoli (${vehiclesList.length})</h2>
+
+              ${vehiclesList.length === 0 ? `
+                <div class="bg-white rounded-lg shadow p-8 text-center text-gray-400">
+                  <p>${searchQuery ? 'Nessun veicolo trovato' : 'Nessun veicolo registrato'}</p>
+                </div>` : `
+                <div class="space-y-3">
+                  ${vehiclesList.map(v => {
+                    const stats = getVehicleStats(v.targa);
+                    return `
+                      <div class="bg-white rounded-lg shadow p-4">
+                        <div class="flex justify-between items-center">
+                          <div class="flex-1 cursor-pointer" onclick="currentVehicle='${v.targa}'; render();">
+                            <span class="text-xl font-bold">${v.targa}</span>
+                            <p class="text-gray-400">${v.marca || ''} ${v.modello || ''} ${v.anno ? `(${v.anno})` : ''}</p>
+                            ${v.chilometraggio ? `<p class="text-sm text-gray-500">📍 ${v.chilometraggio} km</p>` : ''}
+                            <p class="text-xs text-gray-500 mt-1">${stats.count} interventi • €${stats.totalCosto.toFixed(2)}</p>
+                          </div>
+                          <div class="flex gap-2">
+                            <button onclick="event.stopPropagation(); openShareModal('${v.targa}')" class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 font-semibold" title="Condividi">🔗</button>
+                            <button onclick="event.stopPropagation(); deleteVehicle('${v.targa}')" class="text-red-500 hover:bg-red-50 px-3 py-2 rounded text-sm font-bold">✕</button>
+                          </div>
+                        </div>
+                      </div>`;
+                  }).join('')}
+                </div>`}
+            </div>
+          </div>`;
+        return;
+      }
+
+      const vehicle = vehicles[currentVehicle];
+      if (!vehicle) {
+        app.innerHTML = `
+          <div class="min-h-screen flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow p-8 text-center">
+              <p class="text-gray-400 mb-4">Veicolo non trovato</p>
+              <button onclick="logout()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Torna all'accesso</button>
+            </div>
+          </div>`;
+        return;
+      }
+
+      if (!showAddForm) {
+        const stats = getVehicleStats(currentVehicle);
+        app.innerHTML = `
+          <div class="min-h-screen">
+            <div class="bg-blue-600 text-white p-4 shadow-lg">
+              <div class="flex justify-between items-center mb-2">
+                ${isMechanicMode ? `<button onclick="currentVehicle=null; render();" class="hover:bg-blue-700 px-3 py-2 rounded">← Indietro</button>` : '<div></div>'}
+                <button onclick="logout()" class="px-3 py-2 bg-red-500 rounded hover:bg-red-600 text-sm">Esci</button>
+              </div>
+              <div class="flex items-center gap-3">
+                <img src="logo.png" alt="TANO" class="h-10 w-10 object-contain rounded-lg bg-white p-1" onerror="this.style.display='none'">
+                <div>
+                  <h1 class="text-2xl font-bold">${vehicle.targa}</h1>
+                  <p class="text-blue-100">${vehicle.marca || ''} ${vehicle.modello || ''} ${vehicle.anno ? `(${vehicle.anno})` : ''}</p>
+                  ${vehicle.chilometraggio ? `<p class="text-sm text-blue-100">📍 ${vehicle.chilometraggio} km</p>` : ''}
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4">
+              ${isMechanicMode ? `
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                  <button onclick="showAddForm=true; render();" class="bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700">➕ Nuovo</button>
+                  <button onclick="exportToExcel()" class="bg-green-700 text-white py-3 rounded-lg font-semibold hover:bg-green-800">📊 CSV</button>
+                  <button onclick="openShareModal('${currentVehicle}')" class="bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">🔗 Link</button>
+                </div>` : `
+                <div class="bg-blue-900 bg-opacity-50 text-white p-4 rounded-lg mb-4 text-center border border-blue-500">
+                  <p class="text-sm font-semibold">👤 Modalità Cliente - Solo Lettura</p>
+                </div>`}
+
+              <h2 class="text-xl font-bold mb-3 text-white">📋 Storico (${stats.count})</h2>
+
+              ${stats.count === 0 ? `
+                <div class="bg-white rounded-lg shadow p-8 text-center text-gray-400"><p>Nessun intervento registrato</p></div>` : `
+                <div class="space-y-3">
+                  ${(vehicle.interventi || []).map(inter => `
+                    <div class="bg-white rounded-lg shadow p-4">
+                      <div class="flex justify-between items-start mb-2">
+                        <div class="flex-1">
+                          <div class="text-sm text-gray-400 mb-1">📅 ${inter.data || 'Data non specificata'}</div>
+                          <h3 class="font-bold text-lg text-blue-400">${inter.tipo}</h3>
+                        </div>
+                        ${isMechanicMode ? `<button onclick="deleteIntervento(${inter.id})" class="text-red-500 hover:bg-red-50 px-2 py-1 rounded text-sm font-bold">✕</button>` : ''}
+                      </div>
+                      <p class="text-gray-300 mb-2">${inter.descrizione}</p>
+                      ${inter.ricambi ? `<div class="text-sm text-gray-400 mb-1"><span class="font-semibold">🔧 Ricambi:</span> ${inter.ricambi}</div>` : ''}
+                      ${inter.note ? `<div class="bg-yellow-900 bg-opacity-30 border-l-4 border-yellow-500 p-3 mt-2 rounded"><p class="text-sm text-gray-300"><span class="font-semibold">💬 Note:</span> ${inter.note}</p></div>` : ''}
+                      <div class="flex flex-wrap gap-3 mt-2 text-sm">
+                        ${inter.costo ? `<div class="text-green-400 font-semibold">💰 ${inter.costo} €</div>` : ''}
+                        ${inter.chilometraggio ? `<div class="text-gray-400 font-semibold">📍 ${inter.chilometraggio} km</div>` : ''}
+                        ${inter.meccanico ? `<div class="text-gray-400">👤 ${inter.meccanico}</div>` : ''}
+                      </div>
+                    </div>`).join('')}
+                </div>`}
+            </div>
+          </div>`;
+      } else {
+        const today = new Date().toISOString().split('T')[0];
+        app.innerHTML = `
+          <div class="min-h-screen">
+            <div class="bg-blue-600 text-white p-4 shadow-lg">
+              <div class="flex items-center gap-3">
+                <img src="logo.png" alt="TANO" class="h-10 w-10 object-contain rounded-lg bg-white p-1" onerror="this.style.display='none'">
+                <div>
+                  <h1 class="text-xl font-bold">${vehicle.targa}</h1>
+                  <p class="text-blue-100">➕ Nuovo Intervento</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4">
+              <div class="bg-white rounded-lg shadow p-4">
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-sm font-semibold mb-1">📅 Data *</label>
+                    <input type="date" id="interventoData" value="${today}" class="w-full px-3 py-2 border rounded">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-semibold mb-1">🔧 Tipo *</label>
+                    <select id="interventoTipo" class="w-full px-3 py-2 border rounded">
+                      <option value="">Seleziona...</option>
+                      <option value="Cambio Olio">Cambio Olio</option>
+                      <option value="Filtro Olio">Filtro Olio</option>
+                      <option value="Filtro Aria">Filtro Aria</option>
+                      <option value="Filtro Carburante">Filtro Carburante</option>
+                      <option value="Filtro Abitacolo">Filtro Abitacolo</option>
+                      <option value="Candele">Candele</option>
+                      <option value="Distribuzione">Distribuzione</option>
+                      <option value="Freni">Freni</option>
+                      <option value="Pneumatici">Pneumatici</option>
+                      <option value="Frizione">Frizione</option>
+                      <option value="Revisione">Revisione</option>
+                      <option value="Aria Condizionata">Aria Condizionata</option>
+                      <option value="Diagnostica">Diagnostica</option>
+                      <option value="Carrozzeria">Carrozzeria</option>
+                      <option value="Elettrico/Elettrauto">Elettrico/Elettrauto</option>
+                      <option value="Sospensioni">Sospensioni</option>
+                      <option value="Scarico">Scarico</option>
+                      <option value="Altro">Altro</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-semibold mb-1">📝 Descrizione *</label>
+                    <textarea id="interventoDesc" rows="3" placeholder="Dettagli intervento..." class="w-full px-3 py-2 border rounded"></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-semibold mb-1">🔩 Ricambi</label>
+                    <input type="text" id="interventoRicambi" placeholder="Es: Pastiglie anteriori..." class="w-full px-3 py-2 border rounded">
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">💰 Costo (€)</label>
+                      <input type="number" id="interventoCosto" step="0.01" placeholder="0.00" class="w-full px-3 py-2 border rounded">
+                    </div>
+                    <div>
+                      <label class="block text-sm font-semibold mb-1">📍 Km</label>
+                      <input type="number" id="interventoKm" value="${vehicle.chilometraggio || ''}" placeholder="km" class="w-full px-3 py-2 border rounded">
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-semibold mb-1">👤 Meccanico</label>
+                    <input type="text" id="interventoMeccanico" placeholder="Nome meccanico" class="w-full px-3 py-2 border rounded">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-semibold mb-1">💬 Note</label>
+                    <textarea id="interventoNote" rows="3" placeholder="Osservazioni, raccomandazioni..." class="w-full px-3 py-2 border rounded"></textarea>
+                  </div>
+                  <div class="flex gap-2 pt-2">
+                    <button onclick="addIntervento()" class="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700">✅ Salva</button>
+                    <button onclick="showAddForm=false; render();" class="flex-1 bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700">❌ Annulla</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }
+    }
+
+    // Service Worker (facultatif)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(() => console.log('✅ Service Worker OK'))
+          .catch(err => console.log('❌ SW Error:', err));
+      });
+    }
+  </script>
+
+  <!-- ============ FIREBASE: init + auth anonyme + sync ============ -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+    import { getStorage } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-storage.js";
+
+    // ⚠️ Remplace si besoin par tes infos projet
+    const firebaseConfig = {
+      apiKey: "AIzaSyAgY9J6un3pftW1t4H4tD_gliY_00Man0A",
+      authDomain: "tano-garage.firebaseapp.com",
+      projectId: "tano-garage",
+      storageBucket: "tano-garage.firebasestorage.app",
+      appId: "1:374916118237:web:f52da64bcb9234baa28d34"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+    const sto  = getStorage(app);
+    window.firebaseAuth = auth; window.firebaseDB = db; window.firebaseSto = sto;
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        signInAnonymously(auth).catch((e) => console.error("Anon auth error:", e));
+      } else {
+        window.firebaseUser = user;
+        console.log("✅ Firebase anonyme:", user.uid);
+      }
+    });
+
+    const FIREBASE_SYNC = true; // désactive = localStorage only
+
+    function getVehiclesRef() { if (!window.vehicles) window.vehicles = {}; return window.vehicles; }
+    function setVehicles(obj) { window.vehicles = obj || {}; }
+
+    // Expose les fonctions utilisées par l'app
+    window.loadData = async function loadData(){
+      try {
+        if (FIREBASE_SYNC && window.firebaseUser) {
+          const ref = doc(db, "users", window.firebaseUser.uid, "storage", "vehicles");
+          const snap = await getDoc(ref);
+          if (snap.exists()) {
+            setVehicles(snap.data().vehicles || {});
+            console.log("⬇️ Vehicles from Firestore:", window.vehicles);
+            return;
+          }
+        }
+        const stored = localStorage.getItem('garage_vehicles');
+        setVehicles(stored ? JSON.parse(stored) : {});
+        console.log("⬇️ Vehicles from localStorage:", window.vehicles);
+      } catch (e) {
+        console.warn("loadData fallback localStorage:", e);
+        const stored = localStorage.getItem('garage_vehicles');
+        setVehicles(stored ? JSON.parse(stored) : {});
+      }
+    };
+
+    window.saveData = async function saveData(){
+      try {
+        // Toujours local
+        localStorage.setItem('garage_vehicles', JSON.stringify(getVehiclesRef()));
+
+        // Optionnel Firestore
+        if (FIREBASE_SYNC && window.firebaseUser) {
+          const ref = doc(db, "users", window.firebaseUser.uid, "storage", "vehicles");
+          await setDoc(ref, { vehicles: getVehiclesRef(), updatedAt: Date.now() }, { merge: true });
+          console.log("⬆️ Vehicles saved to Firestore");
+        }
+        if (typeof window.showNotification === "function") window.showNotification('✅ Dati salvati');
+      } catch (error) {
+        console.error('Erreur save:', error);
+        if (typeof window.showNotification === "function") window.showNotification('❌ Errore salvataggio', 'error');
+      }
+    };
+
+    // Bootstrap : attend l'auth avant de charger et rendre
+    (async () => {
+      const waitAuthReady = () =>
+        new Promise(resolve => {
+          const unsub = onAuthStateChanged(auth, (u) => { if (u) { unsub(); resolve(); } });
+        });
+      await waitAuthReady();
+      await window.loadData();       // ← Firestore ou localStorage
+      window.checkUrlParams();
+      window.render();
+    })();
+  </script>
 </body>
 </html>
